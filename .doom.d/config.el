@@ -41,7 +41,6 @@
         (big-font-size 40)
         (chinese-font-rescale 1.1))
 
-
     (setq doom-big-font (font-spec :family default-font :slant 'italic :size big-font-size)
           doom-variable-pitch-font (font-spec :family default-font :slant 'italic :size default-font-size)
           doom-serif-font (font-spec :family default-font :slant 'italic :weight 'light))
@@ -185,4 +184,100 @@
 (after! dired
   ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
   (add-hook! 'dired-mode 'all-the-icons-dired-mode)
+  )
+
+(use-package! imenu-list
+  :custom
+  (imenu-list-position 'right)
+  (imenu-list-size 0.2)
+  )
+
+(use-package! awesome-pair)
+
+(after! awesome-pair
+  (dolist (hook (list
+                 'c-mode-common-hook
+                 'c-mode-hook
+                 'c++-mode-hook
+                 'haskell-mode-hook
+                 'emacs-lisp-mode-hook
+                 'lisp-interaction-mode-hook
+                 'lisp-mode-hook
+                 'sh-mode-hook
+                 'makefile-gmake-mode-hook
+                 'php-mode-hook
+                 'python-mode-hook
+                 'js-mode-hook
+                 'go-mode-hook
+                 'css-mode-hook
+                 'ruby-mode-hook
+                 'coffee-mode-hook
+                 'rust-mode-hook
+                 'qmake-mode-hook
+                 'lua-mode-hook
+                 'json-mode-hook
+                 'markdown-mode-hook
+                 'minibuffer-inactive-mode-hook
+                 ))
+    (add-hook hook '(lambda () (awesome-pair-mode 1))))
+
+  (define-key awesome-pair-mode-map (kbd "(") 'awesome-pair-open-round)
+  (define-key awesome-pair-mode-map (kbd "[") 'awesome-pair-open-bracket)
+  (define-key awesome-pair-mode-map (kbd "{") 'awesome-pair-open-curly)
+  (define-key awesome-pair-mode-map (kbd ")") 'awesome-pair-close-round)
+  (define-key awesome-pair-mode-map (kbd "]") 'awesome-pair-close-bracket)
+  (define-key awesome-pair-mode-map (kbd "}") 'awesome-pair-close-curly)
+  (define-key awesome-pair-mode-map (kbd "=") 'awesome-pair-equal)
+
+  (define-key awesome-pair-mode-map (kbd "%") 'awesome-pair-match-paren)
+  (define-key awesome-pair-mode-map (kbd "\"") 'awesome-pair-double-quote)
+
+  (define-key awesome-pair-mode-map (kbd "SPC") 'awesome-pair-space)
+
+  (define-key awesome-pair-mode-map (kbd "M-o") 'awesome-pair-backward-delete)
+  (define-key awesome-pair-mode-map (kbd "C-d") 'awesome-pair-forward-delete)
+  (define-key awesome-pair-mode-map (kbd "C-k") 'awesome-pair-kill)
+
+  (define-key awesome-pair-mode-map (kbd "M-\"") 'awesome-pair-wrap-double-quote)
+  (define-key awesome-pair-mode-map (kbd "M-[") 'awesome-pair-wrap-bracket)
+  (define-key awesome-pair-mode-map (kbd "M-{") 'awesome-pair-wrap-curly)
+  (define-key awesome-pair-mode-map (kbd "M-(") 'awesome-pair-wrap-round)
+  (define-key awesome-pair-mode-map (kbd "M-)") 'awesome-pair-unwrap)
+
+  (define-key awesome-pair-mode-map (kbd "M-p") 'awesome-pair-jump-right)
+  (define-key awesome-pair-mode-map (kbd "M-n") 'awesome-pair-jump-left)
+  (define-key awesome-pair-mode-map (kbd "M-:") 'awesome-pair-jump-out-pair-and-newline)
+  )
+
+(after! markdown-mode
+  (setq markdown-split-window-direction 'right)
+
+  (defun marp-preview()
+    (interactive)
+    ;; (async-shell-command (format "marp -p '%s'" buffer-file-name))
+    (start-process-shell-command "marp-preview" nil (format "marp -p '%s'" buffer-file-name))
+    )
+
+  (defun reveal-preview()
+    (interactive)
+    (let ((reveal-root (concat doom-local-dir "reveal.js"))
+          (custom-css (concat doom-cache-dir "reveal.js/custom.css"))
+          (os-open (cond (IS-MAC "open") (IS-LINUX "xdg-open")))
+          ;; 如果markdown文件里有相对路径资源的引用，随机html文件将不合适，因此改为与原文件同路径同名的html文件
+          ;; (out-html (concat (shell-command-to-string "mktemp") ".html")))
+          (out-html (concat (file-name-sans-extension buffer-file-name) ".html")))
+      (start-process-shell-command
+       "md2reveal" nil
+       "pandoc" "-t revealjs -s --mathjax --toc -V theme=sky"
+       (format "-V revealjs-url='file://%s' --include-in-header='%s' -o '%s' '%s' && %s '%s'"
+               reveal-root custom-css out-html buffer-file-name os-open out-html))
+      )
+    )
+
+  ;; (global-set-key (kbd "\C-cop") 'marp-preview)
+  ;; (global-set-key (kbd "\C-cor") 'reveal-preview)
+  (map! :map markdown-mode-map
+        :localleader
+        "P" #'marp-preview
+        "R" #'reveal-preview)
   )
